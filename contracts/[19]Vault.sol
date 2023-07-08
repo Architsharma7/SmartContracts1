@@ -36,5 +36,47 @@ contract Vault {
     IERC20 public immutable token;
     uint256 public totalSupply;
 
+    mapping(address => uint) balanceOf;
 
+    constructor(address _token){
+        token = IERC20(_token);
+    }
+
+    function mint(address _to, uint _shares) private {
+        totalSupply += _shares;
+        balanceOf[_to] += _shares;
+    }
+
+    function burn(address _to, uint _shares) private {
+        totalSupply -= _shares;
+        balanceOf[_to] -= _shares;
+    }
+
+    function deposit(uint _amount) external {
+        /*
+        a = amount
+        B = balance of token before deposit
+        T = total supply
+        s = shares to mint
+
+        (T + s) / T = (a + B) / B 
+
+        s = aT / B
+        */
+        uint shares;
+        if(totalSupply == 0){
+            shares = _amount;
+        } else {
+            shares = (_amount * totalSupply) / token.balanceOf(address(this));
+        }
+        mint(msg.sender, shares);
+        token.transferFrom(msg.sender, address(this), _amount);
+    }
+
+    function withdraw(uint _amount) external {
+        uint shares;
+        shares = (_amount * totalSupply) / token.balanceOf(address(this));
+        burn(msg.sender, shares);
+        token.transfer(msg.sender, _amount);
+    }
 }
