@@ -46,23 +46,20 @@ contract Staking{
     // address of user to staked amount
     mapping(address => uint256) public stakedAmount;
 
+    // mapping for the rewards per token paid 
+    mapping(address => uint256) public rewardsPerTokenPaid ;
+
     // total supply of staked token in contract
     uint256 public _totalSupply;
 
     constructor(address _stakingToken, address _rewardsToken){
-        owner = msg.sender;
         stakingToken = IERC20(_stakingToken);
         rewardsToken = IERC20(_rewardsToken);
     }
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "not authorized");
-        _;
-    }
-
     function rewardsPerToken() public view returns (uint){
-        if(totalSupply == 0){
-            return _rewardsPerToken;
+        if(_totalSupply == 0){
+            return rewardPerTokenStored;
         }
         return rewardPerTokenStored + (((rewardRate * (block.timestamp - lastUpdateTime) * 1e18 )) / _totalSupply);
     }
@@ -72,7 +69,36 @@ contract Staking{
     // returns amount of earned rewards
     function earnedRewards(address _account) public view returns(uint256){
         return(
-            (stakedAmount[_account] * ((rewardsPerToken() - rewardPerTokenStored[_account]) / 1e18)) + rewards[account];
-        )
+            (stakedAmount[_account] * ((rewardsPerToken() - rewardsPerTokenPaid[_account]) / 1e18)) + rewards[_account]
+        );
+    }
+
+     /// modifier that will calculate the amount every time the user calls , and update them in the rewards array
+     modifier updateReward(address account){
+        rewardPerTokenStored = rewardsPerToken();
+        lastUpdateTime =  block.timestamp;
+        /// updating the total rewards owned by the user
+        rewards[account] = earnedRewards(account);
+        // updating per token reward amount in the mapping
+        _rewardsPerToken[account] = rewardPerTokenStored;
+        _;
+    }
+
+    function stake(uint _amount) external payable updateReward(msg.sender) {
+        _totalSupply += _amount;
+        stakedAmount[msg.sender] += _amount;
+        stakingToken.transferFrom(msg.sender, address(this), _amount);
+    }
+
+    function withdraw(uint _amount) payable external updateReward(msg.sender) {
+        _totalSupply -= _amount;
+        stakedAmount[msg.sender] -= _amount;
+        stakingToken.transfer(msg.sender, _amount);
+    }
+
+    function getRewards() external payable updateReward(msg.sender){
+        uint reward = rewards[msg.sender];
+        rewards[msg.sender] = 0 ;
+        rewardsToken.transfer(msg.sender, reward);
     }
 }
