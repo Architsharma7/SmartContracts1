@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 interface IERC721{
-    /// creating interface for the function we will be using in our mein contract
+    /// creating interface for the function we will be using in our main contract
     /// to transfer the NFT automatically after the bid.
     function safeTransferFrom(
         address from , 
