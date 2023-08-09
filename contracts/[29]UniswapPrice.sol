@@ -1,5 +1,5 @@
 // SPDX-License-Identifier:MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 // fetch the swap rate of a pair with uniswap price query method
 
